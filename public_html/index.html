@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Assignment2</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+        <link rel='stylesheet' href='./css/moveme.css'>
+ 
+    </head>
+    <body>
+        <div id="container">
+            <div id="ball"></div>
+            <div id="racket"></div>
+            <div id="shape"></div>
+            <div id="message"></div>
+        </div>
+
+        <script>
+            window.addEventListener("load", function load(){
+                
+                 // Cancel load event - no longer needed!
+                window.removeEventListener("load",load);
+                
+                function Container(ID) {
+                    this.id = document.getElementById(ID);
+                    this.width = this.id.clientWidth;
+                    this.height = this.id.clientHeight;
+                };
+                
+                var container = new Container("container");
+                var messageID=document.getElementById("message");
+
+                // THe superclass/superobject
+                function Shape(ID, X, Y, Width, Height) {
+
+                    this.id = document.getElementById(ID);
+                    this.x=X;
+                    this.y=Y;
+                    this.width=Width;
+                    this.height=Height;
+
+                    // To reference variable inside placeShape() object
+                    var style=this.id.style;
+
+                    this.placeShape = function(display=null) {
+                        style.left=this.x + "px";
+                        style.top=this.y + "px";
+                        style.width=this.width + "px";
+                        style.height=this.height + "px";
+                        if (display) {style.display=display;}
+                    };
+                    
+                    this.placeShape("block");
+                };
+
+
+                // Moving shape aka "ball"
+                function Ball (ID, X, Y, Width, Height, Xspeed, Yspeed) {
+                    // load the superclass
+                    Shape.call(this, ID, X, Y, Width, Height);
+                    this.xspeed=Xspeed;
+                    this.yspeed=Yspeed;
+                    
+                    this.intervalID=null;
+                    
+                    // we need this variable to reference inside .moveBall() 
+                    // and other methods! What happens if you don't use it??
+                    var me=this;
+                    
+                    this.moveBall = function() {
+                            me.x+=me.xspeed;
+                            me.y+=me.yspeed;
+                    
+                            if ( me.x<=0 || me.x + me.width >= container.width) {
+                                me.xspeed *= (-1);
+                            }
+
+                            if (me.y<=0) {
+                                me.yspeed *= (-1);
+                            }
+                            if (me.y + me.height >= container.height - racket.height) {
+                                gameOver("You lose!", "red");
+                            }
+                            if (collision(me, shape)) {
+                                gameOver("You win!", "blue"); 
+                            }
+                            
+                            if (collision(racket, ball))
+                            {
+                                ball.yspeed *= (-1);
+                            }
+
+                            me.placeShape();
+                    };
+                    
+                    
+                    this.startBallMove = function() {
+                        if (!me.intervalID){
+                            me.intervalID=window.setInterval(me.moveBall, 20);
+                        }
+                    };
+                    this.stopBallMove = function() {
+                        if (me.intervalID) {
+                           window.clearInterval(me.intervalID);
+                        }
+                    };
+                }
+                
+                function Racket(ID, X, Y, Width, Height)
+                {
+                    Shape.call(this, ID, X, Y, Width, Height);
+                    var self=this;
+                    
+                    this.moveLeft = function() {
+                        if (this.x>=11) {
+                        self.x -= 15;
+                        self.placeShape();
+                        if (collision(this, ball)) {
+                            ball.yspeed *= (-1);
+                        }
+                        
+                        if (racket.x>0) {
+                            moveLeft();
+                        }
+                    }
+                    };
+                
+                    this.moveRight = function() {
+                        if (this.x<=700) {
+                        self.x += 15;
+                        self.placeShape();
+                        if (collision(this, ball)) {
+                            ball.yspeed *= (-1);
+                        }
+                        
+                        if (racket.x<container.width+racket.width) {
+                            self.x += 15;
+                            self.placeShape();
+                        }
+                    }
+                };
+            }
+                
+                
+                function getRanX() {
+                    minimum = Math.ceil(50);
+                    maximum = Math.floor(800);
+                    return Math.floor(Math.random() * (maximum - minimum)) + minimum;
+                }
+                
+                function getRanY() {
+                    minimum = Math.ceil(50);
+                    maximum = Math.floor(450);
+                    return Math.floor(Math.random() * (maximum - minimum)) + minimum;
+                }     
+                         
+                // Currently shape is placed so it can be hit easily:
+                // You must place the "shape" randomly and the size must be 5-20px;
+                var shape = new Shape("shape", getRanX(), getRanY(), 10, 10);
+                
+                // Note: here the size of "ball" is set to 40 x 40. 
+                // However, you MUST determine the size of the ball from CSS !
+                var ball = new Ball("ball", 0, 0, 40, 40, 2, 5);
+                var racket = new Racket ("racket", container.width/2 , container.height-20, 80, 7);
+               
+               var youDraw = window.setTimeout(function() {
+                       gameOver("You Draw!", "green")
+                       
+                    }, 20000);
+               
+                // Start to move the Ball:
+                ball.startBallMove();
+                
+                window.onkeypress = function(){
+                    if (event.keyCode==113) {
+                        racket.moveLeft();
+                    }
+                    
+                    else if (event.keyCode==119) {
+                        racket.moveRight();
+                    }
+                };
+
+                function collision(obj1, obj2) {
+                    if (obj1.x < obj2.x + obj2.width &&
+                        obj1.x + obj1.width > obj2.x &&
+                        obj1.y < obj2.y + obj2.height &&
+                        obj1.height + obj1.y > obj2.y){
+                         return true;
+                     }
+                     return false;
+                }
+             
+             // You might want to modify gameOver function:
+             // You might also want to include the color as a parameter!
+             // Note: this function is incomplete!
+             // Inside here you might also call cancelEvents() function!
+               function gameOver(message, colour) {
+                   ball.stopBallMove();
+                   messageID.textContent=message;
+                   messageID.style.backgroundColor=colour;
+                   messageID.style.display="inline";
+                   document.getElementById("shape").style.display = "none";
+                   document.getElementById("racket").style.display = "none";
+                   document.getElementById("ball").style.display = "none";
+                   window.clearTimeout(youDraw);
+               }
+
+               
+        });
+            
+    </script>
+    </body>
+</html>
